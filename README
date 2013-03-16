@@ -1,0 +1,3 @@
+rand-src
+
+Makefile-dep: makefile with dependency generation
