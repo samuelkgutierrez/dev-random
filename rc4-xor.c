@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <string.h>
 
+/* openssl enc -rc4 -nosalt -in input.txt -out output.rc4 */
 int
 main(int argc, char **argv)
 {
@@ -27,6 +28,7 @@ main(int argc, char **argv)
     char *oldtxt = "Hey Boss. I've always hated you. I quit. Sincerely, Bob";
     char *newtxt = "Hey Boss. I'm taking the day off tomorrow. Regards, Bob";
     assert(strlen(newtxt) + 1 == fsize);
+    assert(strlen(oldtxt) == strlen(newtxt));
     for (int i = 0; read(fds[0], &buf, sizeof(buf)); ++i) {
         uint8_t n = buf ^ (oldtxt[i] ^ newtxt[i]); 
         write(fds[1], &n, sizeof(n));
