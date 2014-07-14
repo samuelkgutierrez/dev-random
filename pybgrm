@@ -3,6 +3,8 @@
 """
 pybgrm - quick and dirty transparify a picture's background
 
+modifications by - samuel k. gutierrez
+
 - heavy-lifting code from lyst's image background removal post
 
 prerequisites:
