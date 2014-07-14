@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+
+"""
+pybgrm - quick and dirty transparify a picture's background
+
+- heavy-lifting code from lyst's image background removal post
+
+prerequisites:
+- boost (for pgmagick): brew install boost
+- pgmagick: pip install pgmagick
+"""
+
+import sys
+import os
+import pgmagick as pg
+
+def trans_mask_sobel(img):
+    """ Generate a transparency mask for a given image """
+
+    image = pg.Image(img)
+
+    # Find object
+    image.negate()
+    image.edge()
+    image.blur(1)
+    image.threshold(24)
+    image.adaptiveThreshold(5, 5, 5)
+
+    # Fill background
+    image.fillColor('magenta')
+    w, h = image.size().width(), image.size().height()
+    image.floodFillColor('0x0', 'magenta')
+    image.floodFillColor('0x0+%s+0' % (w-1), 'magenta')
+    image.floodFillColor('0x0+0+%s' % (h-1), 'magenta')
+    image.floodFillColor('0x0+%s+%s' % (w-1, h-1), 'magenta')
+
+    image.transparent('magenta')
+    return image
+
+def alpha_composite(image, mask):
+    """ Composite two images together by overriding one opacity channel """
+
+    compos = pg.Image(mask)
+    compos.composite(
+        image,
+        image.size(),
+        pg.CompositeOperator.CopyOpacityCompositeOp
+    )
+    return compos
+
+def remove_background(inFilename, outFilename):
+    """ Remove the background of the image in 'filename' """
+
+    img = pg.Image(inFilename)
+    transmask = trans_mask_sobel(img)
+    img = alpha_composite(transmask, img)
+    img.trim()
+    img.write('foo.png')
+
+################################################################################
+def usage(appName):
+    print """
+usage: {} read-file write-file
+          """.format(appName)
+
+################################################################################
+def main():
+    """
+    """
+    if len(sys.argv) != 3:
+        usage(sys.argv[0])
+        sys.exit(os.EX_OK)
+    inFilePath  = sys.argv[1]
+    outFilePath = sys.argv[2]
+    print "removing bg from: {}".format(inFilePath)
+    remove_background(inFilePath, outFilePath)
+    return os.EX_OK
+
+################################################################################
+################################################################################
+if __name__ == '__main__':
+    exit(main())
