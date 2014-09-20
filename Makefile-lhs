@@ -1,0 +1,48 @@
+#
+# Copyright (c) 2014 Samuel K. Gutierrez All rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# A makefile that helps generate executables and documentation from litterate
+# Haskell scripts.
+
+SHELL = /bin/bash
+
+.PHONY: all clean
+.SUFFIXES: .lhs .o .tex
+
+LHS_SCRIPTS := $(wildcard *.lhs)
+TARGETS     := $(LHS_SCRIPTS:.lhs=)
+OBJS        := $(LHS_SCRIPTS:.lhs=.o)
+TEX         := $(LHS_SCRIPTS:.lhs=.tex)
+
+GHC_FLAGS := -Wall
+
+all: $(OBJS) $(TEX)
+
+%.o: %.lhs
+	@ \
+	echo "################################## building $<" && \
+	ghc $(GHC_FLAGS) $<
+
+%.tex: %.lhs
+	@ \
+	echo "######################### building docs for $<" && \
+	lhs2TeX $< -o $@ && \
+	latexmk -pdf $@
+
+clean:
+	latexmk -f -C $(TARGETS)
+	rm -f *.o *.hi $(TARGETS) *.tex *.ptb
