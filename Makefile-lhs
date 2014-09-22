@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# A makefile that helps generate executables and documentation from litterate
+# A makefile that helps generate executables and documentation from literate
 # Haskell scripts.
 
 SHELL = /bin/bash
