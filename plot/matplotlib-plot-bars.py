@@ -3,6 +3,8 @@
 # a bar plot with errorbars
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['text.usetex'] = True
 
 fileName = 'file-name.pdf'
 
