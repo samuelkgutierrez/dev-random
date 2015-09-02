@@ -6,43 +6,62 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams['text.usetex'] = True
 
+# colors
+tableau2 = (0.882,0.478,0.470)
+tableau3 = (0.565,0.663,0.792)
+
 fileName = 'file-name.pdf'
 
 # Number of things we are plotting
 N = 6
 
-eventRates = (
+# includes all legion analysis events (events per second)
+allEventRates = (
     5484,
     10999,
     20652,
     36641,
     51114,
-    71581
+    75760
 )
 
-# the x locations for the groups
+# just app-related events (events per second)
+appEventRates = (
+    278,
+    547,
+    1093,
+    1822,
+    2792,
+    3831
+)
+
 ind = np.arange(N)  # the x locations for the groups
 # the width of the bars
-width = .9
-# x offset
+width = .90
 offset = 0.175
 
 fig, ax = plt.subplots()
+# kilo events per second
+allKEPS = map(lambda ev: float(ev) / float(1000), allEventRates)
+appKEPS = map(lambda ev: float(ev) / float(1000), appEventRates)
 
-# calculate kilo events per second
-keps = map (lambda ev: float(ev) / float(1000), eventRates)
+rects1 = ax.bar(ind, allKEPS, width, color = tableau2)
+rects2 = ax.bar(ind, appKEPS, width, color = tableau3)
 
-rects1 = ax.bar(ind, keps, width, color= '#d76365')
 
 # add some text for labels, title and axes ticks
 ax.set_title(
-    'Title'
+    'Title',
+    fontsize = 16
 )
 
-ax.set_ylabel('Aggregate Event Rate (Kilo Events per Second)')
+ax.set_ylabel(
+    'Average Aggregate Event Rate (Kilo Events per Second)',
+    fontsize = 16
+)
 plt.yticks(fontsize = 16)
-ax.set_ylim((0, max(keps) + 4))
-ax.set_xlabel('Job Size (Number of Processing Units)')
+ax.set_ylim((0, max(allKEPS) + 4))
+ax.set_xlabel('Job Size (Number of Processing Units)', fontsize = 16)
 
 ax.set_xticks(ind + (width / 2))
 plt.xlim([0, ind.size])
@@ -63,8 +82,17 @@ def autolabel(rects):
             va='bottom'
         )
 
-autolabel(rects1)
+ax.legend(
+    (rects1[0], rects2[0]),
+    ('All Runtime Events',
+     'Task Invocation Events'),
+    loc = 2
+)
 
+autolabel(rects1)
+autolabel(rects2)
+
+print "Saving figure to " + fileName
 fig.savefig(
     fileName,
     format = 'pdf',
