@@ -1,0 +1,15 @@
+################################################################################
+
+This distribution contains the source code for sirca, a susceptible infected
+recovered (SIR) cellular automata code in java.
+
+################################################################################
+
+Build:
+javac *.java
+
+Run:
+java SIRCA
+
+Run Genetic Alorithm Stuff:
+java GeneticAlgorithm
