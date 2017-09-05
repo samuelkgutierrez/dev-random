@@ -1,0 +1,469 @@
+#!/usr/bin/env python
+
+###############################################################################
+# Copyright (c)      2017 Los Alamos National Security, LLC.
+#                         All rights reserved.
+###############################################################################
+
+import os
+import sys
+import operator
+import collections
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
+
+
+###############################################################################
+class Util:
+
+    @staticmethod
+    def btomb(b):
+        return float(b) / 1024.0 / 1024.0
+
+    @staticmethod
+    def mean(num_lst):
+        return float(sum(num_lst)) / max(len(num_lst), 1)
+
+    @staticmethod
+    def sort_human(lst):
+        return sorted(lst, key=lambda x: '{0:0>8}'.format(x).lower())
+
+
+###############################################################################
+class RunMetadata:
+    def __init__(self, data_path):
+
+        self.data = {
+            'Report Date Time': '',
+            'Application Name': '',
+            'Hostname': '',
+            'MPI_COMM_WORLD Rank': long(0),
+            'MPI_COMM_WORLD Size': long(0),
+            'MPI Init Time (s)': float(0),
+            'Number of Operation Captures Performed': long(0),
+            'Number of Memory Operations Recorded': long(0),
+            'Number of Allocation-Related Operations Recorded': long(0),
+            'Number of Deallocation-Related Operations Recorded': long(0),
+            'Number of MPI Library PSS Samples Collected': long(0),
+            'Number of Application PSS Samples Collected': long(0),
+            'High Memory Usage Watermark (MPI) (MB)': float(0),
+            'High Memory Usage Watermark (Application + MPI) (MB)': float(0)
+        }
+
+        with open(data_path, 'r') as f:
+            lines = [x.strip('\n') for x in f.readlines()]
+
+            assert(lines[0] == '# [Run Info Begin]')
+
+            lidx = 1
+            meta_lines = []
+            while True:
+                if lines[lidx] == '# [Run Info End]':
+                    break
+                meta_lines.append(lines[lidx].strip('# '))
+                lidx += 1
+
+            for ml in meta_lines:
+                kv = [x.strip(' ') for x in ml.split(':')]
+                assert(len(kv) == 2)
+                key = kv[0]
+                val_str = kv[1]
+                if key not in self.data:
+                    print("ERROR: '{}' not a recognized key...".format(key))
+                    assert(False)
+                self.data[key] = self.cast(type(self.data[key]), val_str)
+
+    def cast(self, val_type, string):
+        return val_type(string)
+
+    @staticmethod
+    def emit_stats(meta_list):
+        header = '# Run Statistics '
+        print('{}{}'.format(header, '#' * (80 - len(header))))
+
+        print('# Report Date Time: {}'.format(
+            meta_list[0].data['Report Date Time'])
+        )
+
+        print('# Application: {}'.format(
+            meta_list[0].data['Application Name'])
+        )
+
+        for kprefix in ['MPI_COMM_WORLD', 'MPI Init Time']:
+            mpi_keys = [k for k in meta_list[0].data.keys()
+                        if k.startswith(kprefix)]
+
+            for k in mpi_keys:
+                print('# {}: {}'.format(k, meta_list[0].data[k]))
+
+        print('# Number of Output Files Analyzed: {}'.format(len(meta_list)))
+
+        for kprefix in ['Number of', 'High Memory Usage Watermark']:
+            stat_keys = [k for k in meta_list[0].data.keys()
+                         if k.startswith(kprefix)]
+            RunMetadata.emit_min_max_aves(meta_list, stat_keys)
+
+    @staticmethod
+    def emit_min_max_aves(meta_list, keys):
+        for k in keys:
+            print('# {}'.format(k))
+
+            vals = [meta.data[k] for meta in meta_list]
+
+            minidx, minval = min(enumerate(vals), key=operator.itemgetter(1))
+            maxidx, maxval = max(enumerate(vals), key=operator.itemgetter(1))
+
+            min_where = meta_list[minidx].data['Hostname']
+            max_where = meta_list[maxidx].data['Hostname']
+            ave = Util.mean(vals)
+
+            print('- Min: {}, Who: {}, Where: {}'.format(
+                minval, minidx, min_where)
+            )
+            print('- Max: {}, Who: {}, Where: {}'.format(
+                maxval, maxidx, max_where)
+            )
+            print('- Ave: {0:0.3f}'.format(ave))
+
+
+###############################################################################
+class TimeSeries:
+    def __init__(self):
+        self.data = {
+            'times': [],
+            'svals': []
+        }
+
+    def push(self, time, samp_val):
+        self.data['times'].append(time)
+        self.data['svals'].append(samp_val)
+
+    def get(self, key):
+        assert(key in self.data)
+        return self.data[key]
+
+
+###############################################################################
+class Experiment:
+    def __init__(self, log_path):
+        self.log_path = log_path
+        self.log_files = self.get_log_files(log_path)
+        self.run_meta = self.get_run_meta()
+        '''
+        Two level dict maps rank to usage type to time series.
+        '''
+        self.rank_to_time_series = collections.defaultdict(dict)
+
+        self.data_sanity()
+
+        RunMetadata.emit_stats(self.run_meta)
+
+    def get_num_species(self):
+        return len(self.rank_to_time_series)
+
+    def get_log_files(self, log_path):
+        (_, _, file_names) = os.walk(log_path).next()
+        logs = [f for f in file_names if f.endswith('.mmcu')]
+        return Util.sort_human(logs)
+
+    def get_run_meta(self):
+        meta = []
+        for log in self.log_files:
+            data_path = '{}/{}'.format(self.log_path, log)
+            meta.append(RunMetadata(data_path))
+        return meta
+
+    def data_sanity(self):
+        app_name = None
+        numpe = None
+        for idx, meta in enumerate(self.run_meta):
+            cur_app_name = meta.data['Application Name']
+            cur_numpe = meta.data['MPI_COMM_WORLD Size']
+            if app_name is None:
+                app_name = cur_app_name
+            elif app_name != cur_app_name:
+                print("ERROR: Application name mismatch!")
+                assert(False)
+            if numpe is None:
+                numpe = cur_numpe
+            elif numpe != cur_numpe:
+                print("ERROR: Application numpe mismatch!")
+                assert(False)
+            rank = meta.data['MPI_COMM_WORLD Rank']
+            assert(rank == idx)
+
+    def crunch(self):
+        for log in self.log_files:
+            rank = int(log.split('.')[0])
+            fpath = '{}/{}'.format(self.log_path, log)
+
+            with open(fpath, 'r') as f:
+                content = [x.strip('\n') for x in f.readlines()
+                           if not x.strip().startswith('#')]
+
+                ts = {
+                    'MPI_MEM_USAGE': TimeSeries(),
+                    'ALL_MEM_USAGE': TimeSeries()
+                }
+
+                for l in content:
+                    ldata = l.split(' ')
+                    dtype = ldata[0]
+                    dtime = float(ldata[1])
+                    dmem = long(ldata[2])
+                    ts[dtype].push(dtime, dmem)
+
+                self.rank_to_time_series[rank] = ts
+
+
+###############################################################################
+class Colorer:
+    def __init__(self, n_colors):
+        self.n_colors = n_colors
+        self.color_idx = 0
+        self.pvalues = np.logspace(-0.1, 0, n_colors)
+        self.pmin = self.pvalues[0]
+        self.pmax = self.pvalues[-1]
+
+    def norm(self, pval):
+        return (pval - self.pmin) / float(self.pmax - self.pmin)
+
+    def get_color(self):
+        cm = Colorer.get_cm()
+        c = cm(
+            self.norm(self.pvalues[self.color_idx])
+        )
+        self.color_idx += 1
+        return c
+
+    @staticmethod
+    def get_cm():
+        # return plt.cm.copper
+        return plt.cm.viridis
+
+
+###############################################################################
+class Plotter:
+    def __init__(self, experiments_to_plot):
+        self.fname = self.get_usable_file_name('mem-usage-over-time', 'pdf')
+        self.experiments = experiments_to_plot
+        self.numpes = set()
+        self.fig, self.axs = plt.subplots(2, sharex=True)
+        self.ts2ax = {
+            'ALL_MEM_USAGE': self.axs[0],
+            'MPI_MEM_USAGE': self.axs[1]
+        }
+        self.ts2colorer = {
+            'ALL_MEM_USAGE': None,
+            'MPI_MEM_USAGE': None
+        }
+        self.ts2title = {
+            'ALL_MEM_USAGE': 'Application Memory Usage Over Time',
+            'MPI_MEM_USAGE': 'MPI Library Memory Usage Over Time',
+        }
+        self.max_x = sys.float_info.min
+        self.max_y = sys.float_info.min
+        self.min_y = sys.float_info.max
+        self.line_style = 'solid'
+        self.title_font_size = 12
+        self.axis_font_size = 12
+
+    def plot(self):
+        ''' Color maps setup '''
+        num_colors = max([e.get_num_species() for e in self.experiments])
+        for key in self.ts2colorer:
+            self.ts2colorer[key] = Colorer(num_colors)
+
+        print('plotting to {}'.format(self.fname))
+
+        for e in self.experiments:
+            for rank, ts in e.rank_to_time_series.iteritems():
+                for tsk, tsi in ts.iteritems():
+                    self.add_plot(
+                        self.ts2ax[tsk], self.ts2colorer[tsk], rank, tsi
+                    )
+
+        '''
+        plt.title('Memory Usage Over Time')
+        '''
+
+        scalf = 1.05
+        xmin = 0
+        xmax = self.max_x * scalf
+        '''
+        ymin = self.min_y / scalf
+        ymax = self.max_y * scalf
+        '''
+        for ax in self.axs.flat:
+            ax.set_xlim(xmin, xmax)
+            # Show grids.
+            ax.grid(True)
+            # Set y labels.
+            ax.set_ylabel(
+                'Memory Usage (MB)', fontsize=self.axis_font_size
+            )
+            # Set y-tick format.
+            ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+        for axk, axi in self.ts2ax.iteritems():
+            axi.set_title(
+                self.ts2title[axk],
+                fontsize=self.title_font_size
+            )
+
+        self.add_colorbar_to_subplots(num_colors)
+        self.add_mpi_init_shading_to_subplots()
+        '''
+        Set common y label.
+        self.fig.text(
+            0.06, 0.5,
+            'Memory Usage (MB)',
+            fontsize=self.axis_font_size,
+            ha='center', va='center', rotation='vertical'
+        )
+        '''
+
+        '''
+        Only bottom-most axis will have x label.
+        '''
+        self.axs[-1].set_xlabel(
+            'Wall Time Since Initialization (s)', fontsize=self.axis_font_size
+        )
+
+        '''
+        plt.legend(loc=2)
+        '''
+
+        self.fig.savefig(
+            self.fname,
+            format='pdf',
+            bbox_inches='tight',
+            pad_inches=0.03
+        )
+
+    def add_mpi_init_shading_to_subplots(self):
+        max_time = sys.float_info.min
+        for e in self.experiments:
+            for meta in e.run_meta:
+                max_time = max(max_time, meta.data['MPI Init Time (s)'])
+            for ax in self.axs:
+                ax.axvspan(0, max_time, alpha=0.5, color='#f1f1f1')
+
+    def add_colorbar_to_subplots(self, num_colors):
+        # To number of ranks.
+        normalize = mcolors.Normalize(vmin=0, vmax=num_colors)
+        smappaple = cm.ScalarMappable(norm=normalize, cmap=Colorer.get_cm())
+        smappaple.set_array(num_colors)
+
+        # Create an axes on the right side of ax. The width of cax will be 2%
+        # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+        for ax in self.axs:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes(
+                "right",
+                size="2%",
+                pad=0.05
+            )
+
+            tick_format = '%d'
+            if (num_colors > 99):
+                tick_format = '%.0e'
+
+            cbar = plt.colorbar(
+                smappaple,
+                cax=cax,
+                format=tick_format
+            )
+            cbar.set_ticks([0, num_colors])
+            cbar.set_label('Process Identifier Map', rotation='vertical')
+
+    def add_plot(self, target_ax, colorer, rank, time_series):
+        x = time_series.get('times')
+        self.max_x = max(self.max_x, max(x))
+
+        y = map(Util.btomb, time_series.get('svals'))
+        self.min_y = min(self.min_y, min(y))
+        self.max_y = max(self.max_y, max(y))
+
+        #
+        clr = colorer.get_color()
+        #
+        target_ax.plot(
+            x, y,
+            linestyle=self.line_style,
+            color=clr,
+            alpha=0.9
+        )
+        '''
+        target_ax.fill_between(
+            range(len(y)), 0, y,
+            interpolate=True, color=clr, alpha=0.2
+        )
+        '''
+
+    def get_usable_file_name(self, name, extension):
+        fidx = 1
+        cwd = os.getcwd()
+        target_fname = '{}/{}.{}'.format(cwd, name, extension)
+        while (os.path.isfile(target_fname)):
+            target_fname = '{}/{}-{}.{}'.format(cwd, name, fidx, extension)
+            fidx += 1
+
+        return target_fname
+
+
+###############################################################################
+def usage():
+    print('usage: plot-xhpcg-weak [DATADIR]...')
+
+
+###############################################################################
+def check_args(argv):
+    if len(argv) < 2:
+        usage()
+        exit(os.EX_USAGE)
+
+    for arg in argv[1:]:
+        if not os.path.isdir(arg):
+            print("'{}' is not a directory. Cannot continue.".format(arg))
+            usage()
+            exit(os.EX_USAGE)
+
+
+###############################################################################
+def process_experiment_data(data_dirs):
+    experiments = []
+
+    for data_dir in data_dirs:
+        print('# Processing files in {}'.format(data_dir))
+        e = Experiment(data_dir)
+        e.crunch()
+        experiments.append(e)
+
+    return experiments
+
+
+###############################################################################
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    check_args(argv)
+
+    experiments = process_experiment_data(argv[1:])
+
+    plotter = Plotter(experiments)
+    plotter.plot()
+
+    return os.EX_OK
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+if __name__ == "__main__":
+    sys.exit(main())
