@@ -19,7 +19,7 @@ def write_schedule(file) -> None:
     ]
 
     start_date = date.today()
-    end_date = date(2024, 2, 1)
+    end_date = start_date + timedelta(weeks=54)
 
     employee_pool = cycle(employe_names)
 
