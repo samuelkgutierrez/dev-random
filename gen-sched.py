@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 
 '''
 '''
@@ -18,34 +18,21 @@ def write_schedule(file) -> None:
         'Jake Baz'
     ]
 
-    start_year = date.today().year
-    start_month = date.today().month
-    end_month = 12
-    end_date = date.today()
+    start_date = date.today()
+    end_date = date(2024, 2, 1)
 
     employee_pool = cycle(employe_names)
 
     cal = calendar.Calendar(calendar.MONDAY)
 
-    for month in range(start_month, end_month + 1):
-        month_dates = cal.itermonthdates(start_year, month)
-
-        for md in month_dates:
-            if md.weekday() == cal.firstweekday:
-                employee = next(employee_pool)
-                start_date = md
-                file.write(f"\n{start_date.strftime('%B %d %Y')}, ")
-                file.write(start_date.strftime('Week %W\n'))
-                file.write(f'{employee}, \n')
-                end_date = start_date + timedelta(days=7)
-
-    for _ in range(0, 2):
-        employee = next(employee_pool)
-        start_date = end_date
-        file.write(f"\n{start_date.strftime('%B %d %Y')}, ")
-        file.write(start_date.strftime('Week %W\n'))
-        file.write(f'{employee}, \n')
-        end_date = start_date + timedelta(days=7)
+    cur_date = start_date
+    while cur_date < end_date:
+        if cur_date.weekday() == cal.firstweekday:
+            employee = next(employee_pool)
+            file.write(f"\n{cur_date.strftime('%B %d %Y')}, ")
+            file.write(cur_date.strftime('Week %W\n'))
+            file.write(f'{employee}, \n')
+        cur_date = cur_date + timedelta(days=1)
 
 
 if __name__ == '__main__':
