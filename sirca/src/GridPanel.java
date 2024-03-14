@@ -10,10 +10,10 @@ import javax.swing.JPanel;
 //                                                                            //
 //----------------------------------------------------------------------------//
 //                                                                            //
-//Copyright (c) 2008 Samuel K. Gutierrez All Rights Reserved.                 //
+//Copyright (c) 2008-2024 Samuel K. Gutierrez All Rights Reserved.            //
 //                                                                            //
 //This program is free software; you can redistribute it and/or modify it     //
-//under the terms of the GNU General Public License as published by the Free  // 
+//under the terms of the GNU General Public License as published by the Free  //
 //Software Foundation; either version 2 of the License, or (at your option)   //
 //any later version.                                                          //
 //                                                                            //
@@ -36,7 +36,7 @@ import javax.swing.JPanel;
  *
  */
 
-public final class GridPanel extends JPanel 
+public final class GridPanel extends JPanel
 implements MouseListener, Runnable {	
 	///Serial Version UID
 	private static final long serialVersionUID = 1L;
@@ -45,25 +45,25 @@ implements MouseListener, Runnable {
 	private static final Color GRID_LINE_COLOR = Color.LIGHT_GRAY;
 	
 	//Game of Life Colors
-	///Color Used To Represent a Cell that is Alive 
+	///Color Used To Represent a Cell that is Alive
 	private static Color aliveColor = Color.RED;
 	///Color Used To Represent a Cell that is Empty
 	private static Color emptyColor = Color.GRAY;
 	
 	//SIR Colors
-	///Color Used To Represent a Cell that is Susceptible 
+	///Color Used To Represent a Cell that is Susceptible
 	private static Color susceptibleColor = Color.BLUE;
-	///Color Used To Represent a Cell that is Infectious 
+	///Color Used To Represent a Cell that is Infectious
 	private static Color infectiousColor = Color.GREEN;
 	///Color Used To Represent a Cell that is Recovered
 	private static Color recoveredColor = Color.GREEN;
-	///Color Used To Represent an Infectious Carrier Cell 
+	///Color Used To Represent an Infectious Carrier Cell
 	private static Color carrieriColor = Color.CYAN;
-	///Color Used To Represent a Carrier Cell 
+	///Color Used To Represent a Carrier Cell
 	private static Color carrierColor = Color.BLACK;	
 	
 	///The Pixel Width of a Cell
-	private static final int CELL_WIDTH = 20;
+	private static final int CELL_WIDTH = 5;
 	///The Pixel Height of a Cell
 	private static final int CELL_HEIGHT = CELL_WIDTH;
 	///Padding Utilized Between Frame Edges and Cell Grid
@@ -71,7 +71,7 @@ implements MouseListener, Runnable {
 	///Padding Utilized Between Cells
 	private static final int CELL_PADDING = 1;
 	
-	///Sleep Time, in milliseconds, Utilized By the Animation Thread 
+	///Sleep Time, in milliseconds, Utilized By the Animation Thread
 	private static int delay;
 	
 	///Number of Horizontal Lines Needed to Draw World Grid
@@ -90,8 +90,8 @@ implements MouseListener, Runnable {
 	private static int PROB_CARRIER_U = 0;
 	
 	///World Instance Being Represented Graphically
-	private static World world = new World(30, 40, World.SIR_WORLD, //FIXME:Size 
-			World.MOORE, probEmpty, probSusceptible, 
+	private static World world = new World(128, 160, World.SIR_WORLD, //FIXME:Size
+			World.MOORE, probEmpty, probSusceptible,
 			probInfected, PROB_CARRIER_U);
 	
 	///Animation Thread
@@ -101,27 +101,27 @@ implements MouseListener, Runnable {
 	private static final JLabel generationLabel = new JLabel();
 	
 	/**
-	 * Constructs a new GridPanel, that is, a graphical representation of the 
-	 * underlying Cellular Automaton's state. 
+	 * Constructs a new GridPanel, that is, a graphical representation of the
+	 * underlying Cellular Automaton's state.
 	 */
 	public GridPanel() {		
 		super(true);
-		setPreferredSize(new Dimension(world.getNumColumns() * 
-				CELL_WIDTH + BORDER_PADDING, 
+		setPreferredSize(new Dimension(world.getNumColumns() *
+				CELL_WIDTH + BORDER_PADDING,
 				world.getNumRows() * CELL_HEIGHT + BORDER_PADDING));
 		delay = 500;
 		
 		horizontalLineCount = world.getNumRows() + 2;
-		verticalLineCount = world.getNumColumns() + 2; 
+		verticalLineCount = world.getNumColumns() + 2;
 		
 		addMouseListener(this);
 		add(generationLabel);
 	}	
 	
 	/**
-	 * Sets the sleep time (in milliseconds) utilized by the animation thread 
+	 * Sets the sleep time (in milliseconds) utilized by the animation thread
 	 * between generation updates.
-	 * @param msDelay Sleep time (in milliseconds) that is to be utilized by 
+	 * @param msDelay Sleep time (in milliseconds) that is to be utilized by
 	 * the animation thread.
 	 */
 	public void setDelay(int msDelay) {
@@ -146,11 +146,11 @@ implements MouseListener, Runnable {
 		g.setColor(GRID_LINE_COLOR);
 		
 		for(int i = 1; i < horizontalLineCount; ++i) {
-			g.drawLine(CELL_HEIGHT, i * CELL_HEIGHT, (verticalLineCount - 1) * 
+			g.drawLine(CELL_HEIGHT, i * CELL_HEIGHT, (verticalLineCount - 1) *
 					CELL_HEIGHT, i * CELL_HEIGHT);
 		}
 		for(int j = 1; j < verticalLineCount; ++j) {
-			g.drawLine(j * CELL_WIDTH, CELL_WIDTH, j * 
+			g.drawLine(j * CELL_WIDTH, CELL_WIDTH, j *
 					CELL_WIDTH, (horizontalLineCount - 1) * CELL_WIDTH);
 		}
 	}
@@ -177,51 +177,51 @@ implements MouseListener, Runnable {
 			for(int j = 0; j < world.getNumColumns(); ++j) {
 				if(world.getCellState(i, j) == World.ALIVE) {
 					g.setColor(aliveColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}				
 				else if(world.getCellState(i, j) == World.EMPTY) {
 					g.setColor(emptyColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}	
 				else if(world.getCellState(i, j) == World.SUSCEPTIBLE) {
 					g.setColor(susceptibleColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}
 				else if(world.getCellState(i, j) == World.INFECTED) {
 					g.setColor(infectiousColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}
 				else if(world.getCellState(i, j) == World.RECOVERED) {
 					g.setColor(recoveredColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}
 				else if(world.getCellState(i, j) == World.CARRIER_I) {
 					g.setColor(carrieriColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}
 				else if(world.getCellState(i, j) == World.CARRIER_U) {
 					g.setColor(carrierColor);
-					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH, 
-							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT, 
-							CELL_WIDTH - CELL_PADDING, 
+					g.fillRect(CELL_WIDTH + CELL_PADDING + j * CELL_WIDTH,
+							CELL_HEIGHT + CELL_PADDING + i * CELL_HEIGHT,
+							CELL_WIDTH - CELL_PADDING,
 							CELL_HEIGHT - CELL_PADDING);
 				}
 			}
@@ -229,7 +229,7 @@ implements MouseListener, Runnable {
 	}
 	
 	/**
-	 * Moves World evolution forward.  Panel is repainted only if the world has 
+	 * Moves World evolution forward.  Panel is repainted only if the world has
 	 * not reached equilibrium.
 	 */
 	public final void evolve() {
@@ -243,14 +243,14 @@ implements MouseListener, Runnable {
 	}	
 	
 	/**
-	 * Maps the cursor's position to a corresponding coordinate pair within the 
-	 * grid of Cells. A Cell's state is only toggled if the World is currently 
+	 * Maps the cursor's position to a corresponding coordinate pair within the
+	 * grid of Cells. A Cell's state is only toggled if the World is currently
 	 * in the Game of Life mode.
 	 */
 	private void map(MouseEvent event) {
 		int mappedX = event.getX() / CELL_WIDTH - 1;
 		int mappedY = event.getY() / CELL_HEIGHT - 1;
-		if(mappedX < 0 || mappedX > world.getNumColumns() - 1 || 
+		if(mappedX < 0 || mappedX > world.getNumColumns() - 1 ||
 				mappedY < 0 || mappedY > world.getNumRows() - 1) {
 			return;
 		}
@@ -260,9 +260,9 @@ implements MouseListener, Runnable {
 
 	/**
 	 * Toggles the state of the Cell located at the provided row and column.
-	 * @param row Row index (Base zero) of the Cell whose state is to be 
+	 * @param row Row index (Base zero) of the Cell whose state is to be
 	 * toggled.
-	 * @param column Column index (Base zero) of the Cell whose state is to be 
+	 * @param column Column index (Base zero) of the Cell whose state is to be
 	 * toggled.
 	 */
 	private void toggleCellState(int row, int column) {
@@ -315,7 +315,7 @@ implements MouseListener, Runnable {
 			evolve();
 			try {
 				Thread.sleep(delay);
-			} 
+			}
 			catch (InterruptedException e) {
 				e.printStackTrace();				
 			}
@@ -367,7 +367,7 @@ implements MouseListener, Runnable {
 	}
 	
 	/**
-	 * @see World.setNeighborhoodSize(int newSize) 
+	 * @see World.setNeighborhoodSize(int newSize)
 	 */
 	public void setNeighborhoodSize(int newSize) {
 		world.setNeighborhoodSize(newSize);
@@ -384,7 +384,7 @@ implements MouseListener, Runnable {
 	
 	/**
 	 * @see World.reset(char state).
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void clear() {
 		reset(World.DEAD);
@@ -393,7 +393,7 @@ implements MouseListener, Runnable {
 	
 	/**
 	 * Populates the world according to the Game of Life Glider preset.
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void glider() {
 		int centerRow = world.getNumRows() / 2;
@@ -406,11 +406,22 @@ implements MouseListener, Runnable {
 		world.setCellState(centerRow - 1, centerColumn,     'A');
 		repaint();
 	}
+
+	public void random() {
+        for (int i = 0; i < world.getNumRows(); i++) {
+            for (int j = 0; j < world.getNumColumns(); j++) {
+                if (Math.random() < 0.35) {
+                    world.setCellState(i, j, 'A');
+                }
+            }
+        }
+		repaint();
+	}
 	
 	
 	/**
 	 * Populates the world according to the Game of Life Row of Ten preset.
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void rowOfTen() {
 		int centerRow = world.getNumRows() / 2;
@@ -431,7 +442,7 @@ implements MouseListener, Runnable {
 	
 	/**
 	 * Populates the world according to the Game of Life Small Exploder preset.
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void smallExploder() {
 		int centerRow = world.getNumRows() / 2;
@@ -449,7 +460,7 @@ implements MouseListener, Runnable {
 	
 	/**
 	 * Populates the world according to the Game of Life Exploder preset.
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void exploder() {
 		int centerRow = world.getNumRows() / 2;
@@ -472,7 +483,7 @@ implements MouseListener, Runnable {
 	
 	/**
 	 * Populates the world according to the Game of Life Tumbler preset.
-	 * Repaints this component to reflect any changes that may have occurred. 
+	 * Repaints this component to reflect any changes that may have occurred.
 	 */
 	public void tumbler() {
 		int centerRow = world.getNumRows() / 2;
@@ -505,7 +516,7 @@ implements MouseListener, Runnable {
 	
 
 	/**
-	 * @see World.reset() 
+	 * @see World.reset()
 	 */
 	public void reset() {
 		world.reset();
@@ -535,9 +546,9 @@ implements MouseListener, Runnable {
 	/**
 	 * @see World.changeProbabilities()
 	 */
-	public void changeProbabilities(int emptyPercent, int susPercent, 
+	public void changeProbabilities(int emptyPercent, int susPercent,
 			int infPercent, int carrierPercent) {
-		world.changeProbabilities(emptyPercent, susPercent, 
+		world.changeProbabilities(emptyPercent, susPercent,
 				infPercent, carrierPercent);
 	}
 }

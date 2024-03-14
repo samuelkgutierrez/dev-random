@@ -26,10 +26,10 @@ import javax.swing.event.ChangeListener;
 //                                                                            //
 //----------------------------------------------------------------------------//
 //                                                                            //
-//Copyright (c) 2008 Samuel K. Gutierrez All Rights Reserved.                 //
+//Copyright (c) 2008-2024  Samuel K. Gutierrez All Rights Reserved.           //
 //                                                                            //
 //This program is free software; you can redistribute it and/or modify it     //
-//under the terms of the GNU General Public License as published by the Free  // 
+//under the terms of the GNU General Public License as published by the Free  //
 //Software Foundation; either version 2 of the License, or (at your option)   //
 //any later version.                                                          //
 //                                                                            //
@@ -52,14 +52,14 @@ import javax.swing.event.ChangeListener;
  *
  */
 
-public final class SIRCA extends JFrame implements 
+public final class SIRCA extends JFrame implements
 	ActionListener, ChangeListener, PropertyChangeListener {
 	///Serial Version UID
 	private static final long serialVersionUID = 2L;
 	///Title String
 	private static final String TITLE = "SIRCA - University of New Mexico";
 	///Grid Panel
-	final static GridPanel panel =  new GridPanel();
+	final static GridPanel panel = new GridPanel();
 
 	///speedSlider Minimum Value
 	private static final int MIN_SPEED = 5;
@@ -76,8 +76,8 @@ public final class SIRCA extends JFrame implements
 	private static boolean sirMode = true;
 	
 	///Game of Life Presets
-	static final String PRESETS[] = {"Clear", "Row Of Ten", "Glider", 
-		"Small Exploder", "Exploder", "Tumbler"};
+	static final String PRESETS[] = {"Clear", "Row Of Ten", "Glider",
+		"Small Exploder", "Exploder", "Tumbler", "Random"};
 	
 	///JCombo Box Used for the Game of Life Presets
 	private static JComboBox presetsComboBox;
@@ -202,7 +202,7 @@ public final class SIRCA extends JFrame implements
 		final ButtonGroup modelButtonGroup = new ButtonGroup(); //Add for the radio
 		final ButtonGroup neighborSizeButtonGroup = new ButtonGroup();
 		
-		final JMenuItem cellProbMenuItem = new 
+		final JMenuItem cellProbMenuItem = new
 		JMenuItem("Population Probabilities");
 		cellProbMenuItem.addActionListener(a);
 		
@@ -210,9 +210,9 @@ public final class SIRCA extends JFrame implements
 		SIRMenuItem = new JCheckBoxMenuItem("Susceptible Infected Recovered");
 		SIRMenuItem.setSelected(true);
 		
-		final JCheckBoxMenuItem MooreMenuItem = 
+		final JCheckBoxMenuItem MooreMenuItem =
 			new JCheckBoxMenuItem("Moore Neighborhood");
-		final JCheckBoxMenuItem vNeumannMenuItem = 
+		final JCheckBoxMenuItem vNeumannMenuItem =
 			new JCheckBoxMenuItem("von Neumann Neighborhood");
 		MooreMenuItem.setSelected(true);
 		
@@ -331,7 +331,7 @@ public final class SIRCA extends JFrame implements
 			panel.populateSIR();
 		}
 		else if(event.getActionCommand().equals("Population Probabilities")) {
-			JOptionPane.showMessageDialog(this, 
+			JOptionPane.showMessageDialog(this,
 					"On My TODO List :-)");
 			//TODO:Add Prop Changer thing...
 			//new SIRCAOptionDialog(this);
@@ -365,13 +365,17 @@ public final class SIRCA extends JFrame implements
 			panel.tumbler();
 		}
 		else if(!sirMode && ((JComboBox)event.getSource()).getSelectedItem().
+				toString().equals("Random")) {
+			panel.random();
+		}
+		else if(!sirMode && ((JComboBox)event.getSource()).getSelectedItem().
 				toString().equals("Clear")) {
 			panel.clear();
 		}
 	}
 	
 	/**
-	 * 
+	 *
 	 */
 	private static void createAndShowGUI() {
 		SIRCA frame = new SIRCA(TITLE);
@@ -384,7 +388,7 @@ public final class SIRCA extends JFrame implements
 	}
 	
 	/**
-	 * 
+	 *
 	 * @param presetName
 	 */
 	private static void loadPreset(String presetName) {
@@ -402,6 +406,9 @@ public final class SIRCA extends JFrame implements
 		}
 		else if(presetName.equals("Tumbler")) {
 			panel.tumbler();
+		}
+		else if(presetName.equals("Random")) {
+			panel.random();
 		}
 		else if(presetName.equals("Clear")) {
 			panel.clear();
@@ -426,7 +433,7 @@ public final class SIRCA extends JFrame implements
 	public void stateChanged(ChangeEvent e) {
 		JSlider source = (JSlider)e.getSource();
 		if (!source.getValueIsAdjusting()) {
-			int delay = (int)source.getValue();
+			int delay = source.getValue();
             panel.setDelay(delay * 10);
         }	
 	}
@@ -445,7 +452,7 @@ public final class SIRCA extends JFrame implements
 	}
 	
 	/*
-	private static final class SIRCAOptionDialog extends JDialog 
+	private static final class SIRCAOptionDialog extends JDialog
 	implements ActionListener {
 
 		private static final long serialVersionUID = 1L;
